@@ -1,0 +1,1 @@
+AI Archery Scoring Detection
