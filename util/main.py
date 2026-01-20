@@ -1,9 +1,11 @@
 import cv2
 from target import Target
-from targetTypes import *
-from crop import crop
-target = Target(TARGET_SPECS[3])
-start = cv2.imread('nfaa-start.png')
-next = cv2.imread('nfaa1-round1.png')
+from targetTypes import TARGET_SPECS
+
+targetName = "NFAA 1 Spot"
+targetSpec = next(spec for spec in TARGET_SPECS if spec.name == targetName)
+target = Target(targetSpec)
+start = cv2.imread('2arrow.png')
+next = cv2.imread('3arrow.png')
 target.updateScore(start, next)
 print(target.score)

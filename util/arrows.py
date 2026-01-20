@@ -1,34 +1,46 @@
 import cv2
-from geometry import *
-import math
+import numpy as np
 
-def findArrowPositions(before, after, centers):
+def findArrowPosition(before, after):
     
     image = cv2.absdiff(before, after)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     _, thresh = cv2.threshold(gray, 40, 255, cv2.THRESH_BINARY)
 
-    contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(thresh, contours, -1, (0,255,0), 2)
-    contours, _ = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-    cv2.drawContours(image, contours, -1, (0,255,0), 2)
-    cx, cy = centers[0]
-    areaMin = 50
-    positions = []
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area > areaMin:
-            minDistance = image.shape[0] * 10
-            position = (0, 0)
-            for contour_point in contour:
-                x, y = contour_point[0]
-                distance = math.sqrt((cx - x) ** 2 + (cy - y) ** 2)
-                if distance < (minDistance):
-                    minDistance = distance
-                    position = (x, y)
-            positions.append(position)
-    cv2.imwrite('diff.png', image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    return positions
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    pts = np.column_stack(np.where(thresh > 0))[:, ::-1]
+    
+    mean = pts.mean(axis=0)
+    cov = np.cov(pts - mean, rowvar=False)
+    eigvals, eigvecs = np.linalg.eig(cov)
+    axis = eigvecs[:, np.argmax(eigvals)]
+    axis /= np.linalg.norm(axis)
+
+    projections = (pts - mean) @ axis
+    offsetDistance = 15
+    end1 = pts[np.argmin(projections)] + offsetDistance * axis
+    end2 = pts[np.argmax(projections)] - offsetDistance * axis
+    
+    
+    thickness1 = localThickness(pts, end1)
+    thickness2 = localThickness(pts, end2)
+    
+    impactPoint = 0
+    
+    if thickness1 < thickness2:
+        impactPoint = end1
+    else:
+        impactPoint = end2
+    cv2.circle(after, (int(impactPoint[0]), int(impactPoint[1])), 20, (0,255,0),1)
+    return impactPoint
+def localThickness(pts, endpoint, radius=6):
+    dists = np.linalg.norm(pts - endpoint, axis=1)
+    return np.sum(dists < radius)

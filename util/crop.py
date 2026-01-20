@@ -1,5 +1,5 @@
 import cv2
-from geometry import *
+from geometry import findLargestSquare, orderPoints
 import numpy as np
 
 def crop(image, contours=None):
