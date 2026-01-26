@@ -5,7 +5,7 @@ TARGET_SPECS = [
     TargetSpec(
         name="Vegas 1 Spot",
         numTargets=1,
-        numCircles=10,
+        numCircles=11,
         scoreVector=np.array([10, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0]),
         centers=np.array([[500, 500]]),
         radii=np.array([

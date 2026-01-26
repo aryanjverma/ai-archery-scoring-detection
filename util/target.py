@@ -7,6 +7,7 @@ import cv2
 
 @functools.total_ordering
 class Target:
+    ARROW_APPROX_RADIUS = 13
     def __init__(self, targetType):
         self.targetType = targetType
         self.centers = targetType.centers
@@ -32,21 +33,21 @@ class Target:
         before = crop(before)
         after = crop(after)
         newArrowPosition = findArrowPosition(before, after)
+        cv2.circle(after, (int(newArrowPosition[0]), int(newArrowPosition[1])), 5, (0,255,0),1)
         circlePositions = np.zeros(shape=(self.numCircles+1))
-        circlePositions[self.locateInnerCirclePosition(newArrowPosition, after)] += 1
+        circlePositions[self.locateInnerCirclePosition(newArrowPosition)] += 1
         
         self.score += np.dot(circlePositions, self.targetType.scoreVector)
         self.xCount += circlePositions[0]
-        cv2.imwrite('diff.png', after)
-    def locateInnerCirclePosition(self, position, after):
-        approxArrowRadius = 25
+        cv2.imwrite('croppedbefore.png', before)
+        cv2.imwrite('croppedafter.png', after)
+    def locateInnerCirclePosition(self, position):
         for center in self.centers:
             distance = math.sqrt((position[0] - center[0]) ** 2 + (position[1] - center[1]) ** 2)
-            distance -= approxArrowRadius
+            distance -= self.ARROW_APPROX_RADIUS
             if self.radii[self.numCircles - 1] > distance:
                 count = 0
                 while (count < len(self.radii) and self.radii[count] < distance):
                     count += 1
-                print(count)
                 return count
         return self.numCircles

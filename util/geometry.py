@@ -6,26 +6,32 @@ def findCenters(gray):
     rows = gray.shape[0]
     minRadius = 50
     maxRadius = 150
+    gray = cv2.medianBlur(gray, 5)
     circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, rows / 8,
-                                param1=100, param2=50,
+                                param1=100, param2=80,
                                 minRadius=minRadius, maxRadius=maxRadius)
     centers = []
     if circles is not None:
         circles = np.uint16(np.around(circles))
         for circle in circles[0, :]:
-            centers.append((circle[0], circle[1]))
+            if not isOutOfBoundCircle(circle, gray.shape):                
+                centers.append((circle[0], circle[1]))
     return centers
+def isOutOfBoundCircle(circle, shape):
+    cX = circle[0]
+    cY = circle[1]
+    r = circle[2]
+    return cX - r < 0 or cY - r < 0 or cX + r > shape[0] or cY + r > shape[1]
 
 circularityCutoff = 0.75
-areaMin = 10
-def findCircles(contours):
+def findCircles(contours, areaMin):
     circles = []
     for contour in contours:
         area = cv2.contourArea(contour)
         perimeter = cv2.arcLength(contour, True)
         if perimeter != 0:
             circularity = (4 * math.pi * area) / (perimeter**2)
-            if circularity > circularityCutoff and areaMin < area:
+            if circularity > circularityCutoff and area > areaMin:
                 circles.append(cv2.minEnclosingCircle(contour))
     return circles
 
@@ -60,7 +66,6 @@ def findRadii(centers, circles, maxRadius):
 epsilonCoef = 0.04
 aspectRatioCutoff = 0.05
 def findLargestSquare(contours, shape):
-
     largestSquare = None
     largestSquareArea = shape[0] * shape[1] / 16
     for contour in contours:
